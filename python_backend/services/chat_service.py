@@ -36,3 +36,19 @@ def save_message(session_id: int, role: str, content: str):
     conn.commit()
     cursor.close()
     conn.close()
+
+
+def get_messages(session_id: int, limit: int = 10) -> list[dict]:
+    """获取指定会话的最近 limit 条消息"""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT role, content FROM messages WHERE session_id = %s ORDER BY created_at DESC LIMIT %s",
+        (session_id, limit),
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    # 反转回时间升序
+    rows.reverse()
+    return [{"role": r["role"], "content": r["content"]} for r in rows]

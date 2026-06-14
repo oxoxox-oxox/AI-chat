@@ -30,3 +30,13 @@ def list_sessions() -> list[dict]:
     cursor.close()
     conn.close()
     return rows
+
+
+def delete_session(session_id: int):
+    """删除指定会话（CASCADE 自动删除关联消息）"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM sessions WHERE id = %s", (session_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
