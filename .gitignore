@@ -1,4 +1,5 @@
 .claude/
 .postman/
 node_modules/
+.env
 CLAUDE.md

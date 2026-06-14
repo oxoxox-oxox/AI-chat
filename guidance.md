@@ -1,162 +1,192 @@
-这个路线图专门放大了后端（Node.js/Express）的权重，采用“小步快跑”的模式，让你每完成一个阶段，都能看到一个切实可行的成果。
+这个路线图专为 **Python 全栈** 设计，采用"小步快跑"模式，每完成一个阶段都能看到切实可行的成果。
 
 ---
 
-# 🗺️ Ollama AI 全栈项目长期修炼路线图
+# 🗺️ Ollama AI 全栈项目长期修炼路线图 (Python 版)
 
 ## 🏷️ 项目总览
 
-* **最终目标**：构建一个类似于 ChatGPT / Claude 的私有化 AI 智能助理网站。支持**多轮对话（带记忆）**、**流式打字机效果**、以及**本地知识库（RAG）**。
-* **核心技术栈**：Node.js + Express (后端) + MongoDB (数据库) + Vue + Ollama (AI 引擎)。
+- **最终目标**：构建一个类似于 ChatGPT / Claude 的私有化 AI 智能助理网站。支持**多轮对话（带记忆）**、**流式打字机效果**、以及**本地知识库（RAG）**。
+- **核心技术栈**：**Python + FastAPI (后端) + MySQL (数据库) + Vue (前端) + Ollama (AI 引擎)**
+- **当前位置**：第一阶段已完成（FastAPI 后端 + Ollama 对话 + MySQL 存储），代码位于 `python_backend/` 目录。
 
 ---
 
-## 📌 第一阶段：跑通管道 —— 后端与本地 AI 的第一次亲密接触
+## 📌 第一阶段：跑通管道 —— 后端与本地 AI 的第一次亲密接触 ✅
 
-> **阶段目标**：搭建最基础的 Express 后端，不考虑前端页面和数据库，纯粹让后端能够成功向 Ollama 发送请求并拿到回复。
+> **阶段目标**：搭建最基础的 FastAPI 后端，不考虑前端页面和数据库，纯粹让后端能够成功向 Ollama 发送请求并拿到回复。
 
 ### 1. 核心学习知识点
 
-* **Node.js 基础**：
-* 理解 Node.js 的运行机制、`npm` 包管理器的使用（`npm init`, `npm install`）。
-* 模块化语法：CommonJS (`require`) 与 ESM (`import/export`) 的区别与配置。
+- **Python 异步编程**：
+  - 理解 `async/await` 的运行机制（协程、事件循环）
+  - 与 JS 的 `async/await` 语法相同但底层实现不同（asyncio vs libuv）
 
+- **FastAPI 框架入门**：
+  - 创建 HTTP 服务器：`uvicorn.run(app, host="0.0.0.0", port=3000)`
+  - 数据校验：`Pydantic BaseModel` 替代 JS 的 JSON 解析
+  - 路由声明：`@app.post("/api/chat")` 装饰器比 Express 更直观
+  - 自动生成 API 文档：FastAPI 自带 Swagger UI（访问 `/docs`）
 
-* **Express 框架入门**：
-* 如何创建一个最基本的 HTTP 服务器（监听端口、解析 JSON 中间件 `express.json()`）。
-* 路由（Routing）的基本概念：如何处理前端发来的 `POST` 请求。
+- **网络请求与异步编程**：
+  - 使用 `httpx.AsyncClient` 向 Ollama API 发请求（Python 版 fetch）
+  - Ollama `/api/chat` 请求体格式：`{ model: "...", messages: [...], stream: false }`
+  - `/api/generate` 只支持单轮，多轮对话必须用 `/api/chat`
 
-
-* **网络请求与异步编程**：
-* 深入理解 JavaScript 的 `async/await` 和 `Promise`（AI 响应需要等待，异步是后端的重中之重）。
-* 如何使用 `fetch` 或 `axios`（或者 Ollama 官方 SDK）在后端向本地的 `http://localhost:11434` 发起 HTTP 请求。
-
-
+- **环境变量管理**：
+  - `python-dotenv` 库（对应 JS 的 `dotenv`）
+  - `os.getenv("KEY")` 读取
 
 ### 2. 成果复检清单
 
-* [ ] 能够通过命令行（如 `node index.js`）成功启动一个监听 3000 端口的服务器。
-* [ ] 使用 Postman 或 ApiFox 向 `http://localhost:3000/api/chat` 发送一个包含问题的 JSON，能成功收到 AI 的一整段文本回复。
+- [ ] 能够通过 `python main.py` 启动监听 3000 端口的服务器
+- [ ] 用浏览器访问 `http://localhost:3000/docs` 看到自动生成的 API 文档
+- [ ] 用 Postman 向 `http://localhost:3000/api/chat` 发送 POST 请求，能收到 AI 回复
 
 ---
 
-## 📌 第二阶段：用户体验飞跃 —— 攻克“流式传输 (Streaming)”
+## 📌 第二阶段：用户体验飞跃 —— 攻克"流式传输 (Streaming)"
 
-> **阶段目标**：拒绝等待！让 AI 的回答像 ChatGPT 一样，一个字一个字地在前端“蹦”出来。这是后端架构中处理长连接的核心技术。
+> **阶段目标**：拒绝等待！让 AI 的回答像 ChatGPT 一样，一个字一个字地在前端"蹦"出来。
 
 ### 1. 核心学习知识点
 
-* **Node.js 数据流 (Stream)**：
-* 理解什么是“流（Stream）”，为什么处理大文件和 AI 响应不能一次性读入内存。
-* 学习如何监听可读流的 `data` 事件和 `end` 事件。
+- **Python 异步生成器 (Async Generator)**：
+  - `async def` + `yield` 是实现 SSE 流式响应的核心语法
+  - 对比 JS 的 `ReadableStream` + `getReader()`，FastAPI 的方式更简洁
 
+- **FastAPI StreamingResponse**：
+  - 返回 `StreamingResponse(generator(), media_type="text/event-stream")`
+  - 不需要像 Express 那样手动设置 `Content-Type`、`Cache-Control` 等响应头
+  - 但理解这些 HTTP 头的作用仍然重要：
+    ```http
+    Content-Type: text/event-stream
+    Cache-Control: no-cache
+    Connection: keep-alive
+    ```
 
-* **HTTP 长连接技术**：
-* **SSE (Server-Sent Events，服务器发送事件)**：学习如何在不使用复杂 WebSocket 的情况下，通过普通的 HTTP 协议实现后端向前端的单向持续数据推送。
-* 理解并配置关键的 HTTP 响应头（Headers）：
-```http
-Content-Type: text/event-stream
-Cache-Control: no-cache
-Connection: keep-alive
+- **SSE (Server-Sent Events)**：
+  - SSE vs WebSocket：SSE 是单向的（服务器→客户端），更简单，适合 AI 流式输出
+  - SSE 数据格式：`data: <JSON>\n\n`（双换行是分隔符）
+  - 结束标记：`data: [DONE]\n\n`
 
-```
-
-
-
-
+- **httpx 流式请求**：
+  - `client.stream("POST", url, ...)` 逐行读取 Ollama 的 NDJSON 响应
+  - `response.aiter_lines()` 异步迭代每一行
 
 ### 2. 成果复检清单
 
-* [ ] 在 Postman 或浏览器中请求该接口，能看到数据不是“啪”的一下全部出来，而是分批次、分行不断刷新显示。
+- [ ] 在浏览器中测试页面，数据分批逐字显示，不是一次性返回
 
 ---
 
-## 📌 第三阶段：让 AI 拥有记忆 —— 数据库集成与多轮对话
+## 📌 第三阶段：让 AI 拥有记忆 —— 数据库集成与多轮对话 ✅ (已完成)
 
-> **阶段目标**：引入数据库，存储用户的聊天历史。让后端在每次提问时，自动把“历史记录”打包带给 Ollama，实现真正的“连续对话”。
+> **阶段目标**：引入数据库，存储用户的聊天历史。让后端在每次提问时，自动把"历史记录"打包带给 Ollama，实现真正的"连续对话"。
 
 ### 1. 核心学习知识点
 
-* **MongoDB & Mongoose（数据库层）**：
-* 非关系型数据库（NoSQL）的基本概念：为什么它像 JSON，为什么适合 JS 开发者。
-* 学习使用 Mongoose 库定义数据模型（Schema）。你需要设计两个表（集合）：
-* `Session`（对话列表）：存储对话标题、创建时间。
-* `Message`（消息历史）：存储角色（`user` 或 `assistant`）、具体文本、所属的 `sessionId`。
+- **MySQL 关系型数据库**：
+  - 关系型数据库（SQL）的基本概念：表、行、列、外键
+  - 与 MongoDB（文档型）的区别：SQL 有固定的表结构、支持 JOIN
+  - 本项目使用 MySQL 而非 MongoDB
 
+- **mysql-connector-python**：
+  - 连接池（Connection Pool）：为什么需要连接池、连接的生命周期
+  - 参数化查询：`cursor.execute("... %s", (value,))` 防止 SQL 注入
+  - dictionary cursor：`cursor(dictionary=True)` 返回字典而非元组
 
+- **业务逻辑设计（Context 管理）**：
+  - 当收到新问题时，根据 `sessionId` 查出最近的 20 条历史消息
+  - 使用 `ORDER BY created_at ASC LIMIT 20` 控制上下文长度
+  - 将 `[历史消息] + [当前新问题]` 组装成 Ollama 需要的 `messages` 数组
+  - AI 结束响应后，将 AI 的完整回复持久化到 MySQL
 
-
-* **业务逻辑设计（Context 管理）**：
-* 当收到新问题时，如何编写 Mongoose 查询语句，根据 `sessionId` 捞出最近的 10 条历史消息。
-* 学习数组拼接，将 `[历史消息] + [当前新问题]` 组装成 Ollama 需要的数组格式发送出去。
-* AI 结束流式响应后，如何将 AI 的完整回复**持久化保存**到 MongoDB 中。
-
-
+- **数据库表设计**：
+  ```sql
+  sessions (id, title, created_at, updated_at)
+  messages (id, session_id, role, content, created_at)
+  -- role: 'user' | 'assistant'
+  -- session_id 外键关联 sessions(id)，ON DELETE CASCADE
+  ```
 
 ### 2. 成果复检清单
 
-* [ ] 第一次提问：“我叫小明”。
-* [ ] 第二次提问：“我叫什么名字？”，AI 能够准确回答出“你叫小明”。
-* [ ] 检查 MongoDB 数据库，确认里面正确存入了这两条聊天记录。
+- [ ] 第一次提问："我叫小明"
+- [ ] 第二次提问："我叫什么名字？"，AI 能够准确回答出"你叫小明"
+- [ ] 检查 MySQL 数据库，确认 `sessions` 和 `messages` 表中正确存入了记录
 
 ---
 
-## 📌 第四阶段：规范化与安全性 —— 变成真正的“后端工程师”
+## 📌 第四阶段：规范化与安全性 —— 变成真正的"后端工程师"
 
-> **阶段目标**：代码不能只是“能跑”，还要安全和健壮。引入用户登录系统，保护你的 AI 算力不被别人盗用。
+> **阶段目标**：代码不能只是"能跑"，还要安全和健壮。引入用户登录系统，保护你的 AI 算力不被别人盗用。
 
 ### 1. 核心学习知识点
 
-* **用户认证与授权 (Auth)**：
-* 密码安全：学习使用 `bcryptjs` 对用户密码进行不可逆的哈希加密。
-* **JWT (JSON Web Token)**：理解无状态认证机制。用户登录成功后发令牌，之后的每次 AI 提问必须在请求头（`Authorization: Bearer <token>`）中携带令牌。
+- **用户认证与授权 (Auth)**：
+  - 密码安全：使用 `bcrypt` 对用户密码进行哈希加密（Python 库：`bcrypt`）
+  - **JWT (JSON Web Token)**：无状态认证机制
+    - 登录成功后签发令牌：`python-jose` 库
+    - 每次 AI 提问时在请求头携带：`Authorization: Bearer <token>`
 
+- **FastAPI 中间件 / 依赖注入**：
+  - 编写权限校验依赖（Depends），拦截未登录的请求
+  - 与 Express 中间件的对比：FastAPI 用 `Depends(get_current_user)` 更灵活
+  - **数据隔离逻辑**：确保用户 A 只能看到自己的聊天历史（查询时加 `WHERE userId = ?`）
 
-* **Express 中间件进阶**：
-* 编写一个全局权限校验中间件（Auth Middleware），拦截没有登录的请求。
-* **数据隔离逻辑**：确保用户 A 只能看到和删除用户 A 自己的聊天历史（在查询数据库时加入 `userId` 限制）。
+- **SQLAlchemy ORM 引入（推荐此时迁移）**：
+  - ORM 是什么：用 Python 类映射数据库表，免写 SQL
+  - Session 和 Message 的 ORM 模型定义
+  - 与原生 SQL 的对比：代码更简洁但需要学习 ORM 概念
 
-
-* **健壮性防护**：
-* 统一错误处理：编写全局错误捕获中间件，避免因为连接不上 Ollama 导致整个 Node.js 进程崩溃。
-* 环境变量管理：使用 `dotenv` 库，把数据库密码、端口等敏感信息写在 `.env` 文件中。
-
-
+- **健壮性防护**：
+  - 全局异常处理器（`@app.exception_handler`）
+  - 环境变量管理：数据库密码、JWT_SECRET 全部在 `.env`
+  - 项目结构重构：拆分 `routers/`、`services/`、`models/`
 
 ### 2. 成果复检清单
 
-* [ ] 没有登录（或 Token 过期）时，访问 AI 接口会收到 `401 Unauthorized` 状态码。
-* [ ] 用户 A 登录后，无法通过技术手段（如修改 URL/ID）查看到用户 B 的聊天记录。
+- [ ] 没有登录（或 Token 过期）时，访问 AI 接口会收到 `401 Unauthorized`
+- [ ] 用户 A 登录后，无法通过修改参数查看到用户 B 的聊天记录
 
 ---
 
 ## 📌 第五阶段（终极挑战）：知识库 RAG —— 向量检索与文档对话
 
-> **阶段目标**：让 AI 能够基于你上传的本地文档（如本地的规则手册、小说等）进行精准回答。这是目前全栈 AI 工程师最值钱的技术。
+> **阶段目标**：让 AI 能够基于你上传的本地文档（如本地的规则手册、小说等）进行精准回答。
 
 ### 1. 核心学习知识点
 
-* **文本预处理与文本嵌入 (Embeddings)**：
-* 学习如何把一个大文档按字符数“切碎”成一个个小的文本段（Chunks）。
-* 学习调用 Ollama 的 `ollama.embeddings` 接口，把文本段转化为一串高维数学向量。
+- **文本预处理与嵌入 (Embeddings)**：
+  - 把大文档按字符数"切碎"成小文本段（Chunks，建议 500-1000 字符/chunk）
+  - 调用 Ollama 的 `/api/embeddings` 接口，把文本转为高维向量
+  - Python 文本处理：比 JS 更方便（原生 `re`、`textwrap`）
 
+- **向量数据库**：
+  - 向量相似度：余弦相似度概念
+  - 推荐方案：**ChromaDB**（Python 原生支持，本地运行）
+  - 核心操作：存向量 + 元数据 → 按相似度检索 Top-K
 
-* **向量数据库入门**：
-* 了解什么是向量相似度（如余弦相似度）。
-* 使用轻量级的本地向量库（如 `HNSWLib`）或 Docker 部署一个 `Chroma` / `Pinecone`，把文本向量存进去。
+- **RAG 业务流控制**：
+  ```
+  用户提问 → Embedding(提问) → 向量库检索 Top-K 相关段落
+  → 拼成 Prompt: "参考以下文档回答问题：\n[段落1]\n[段落2]\n\n问题：[用户提问]"
+  → 发给 Ollama → 返回带引用的回答
+  ```
 
+### 2. 成果复检清单
 
-* **RAG 业务流控制**：
-* 用户提问 -> 将提问转化为向量 -> 去向量库匹配最相关的文档段落 -> 把段落作为“背景知识”和问题一起喂给 Ollama。
-
-
+- [ ] 上传一个文档后，问文档内的问题，AI 能引用原文准确回答
+- [ ] 问文档外的问题，AI 不会胡乱编造（或明确表示不知道）
 
 ---
 
 ## 💡 给你的长期执行建议：
 
-1. **不要急于求成**：每个阶段都足够你消化 1-2 周甚至更久。不要在第一阶段还没搞懂 `async/await` 的时候就去跳到第二阶段写流式传输。
-2. **用 Postman 稳固后端**：在第四阶段之前，**完全不要写一行前端网页代码**。纯粹用 Postman 去测你的后端。当你的后端接口在 Postman 里表现完美时，全栈项目就完成了 70%。
-3. **遇到卡壳怎么办**：Node.js 的报错通常很直白，学会看控制台的 `Error Stack`（报错堆栈）。最容易卡壳的地方通常是 **Mongoose 异步查询** 和 **Stream 的事件监听**，到时候可以随时针对某段特定代码来问我。
+1. **不要急于求成**：每个阶段都足够你消化 1-2 周甚至更久
+2. **善用 FastAPI 的 `/docs`**：FastAPI 自带 Swagger UI，可以直接在浏览器里测试所有 API
+3. **先跑通再优化**：第一阶段不要纠结代码结构，路由全放 `main.py` 没问题；到第四阶段再重构拆分
+4. **遇到卡壳怎么办**：Python 的报错通常很直白，学会看 Traceback。最容易卡壳的地方是 **异步生成器** 和 **数据库连接池配置**
 
-你准备好从**第一阶段**（搭建最基础的 Express 服务器并尝试用代码连接 Ollama）开始了。去新建你的第一个 `server.js` 文件吧！
+你当前已完成第一/三阶段，可以直接从第二阶段（流式传输已实现）开始验收，然后进入第四阶段。
