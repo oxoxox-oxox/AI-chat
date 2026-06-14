@@ -27,8 +27,8 @@ export async function fetchSessions() {
  * @param {(sessionId: number) => void} onDone  流结束
  * @param {(error: string) => void} onError
  */
-export async function streamChat(message, sessionId, onChunk, onDone, onError) {
-  const body = { message }
+export async function streamChat(message, sessionId, onChunk, onDone, onError, rag = false) {
+  const body = { message, rag }
   if (sessionId) body.sessionId = sessionId
 
   const res = await fetch(`${BASE}/chat/stream`, {
@@ -82,5 +82,22 @@ export async function deleteSession(sessionId) {
     method: 'DELETE',
   })
   if (!res.ok) throw new Error('删除会话失败')
+  return res.json()
+}
+
+export async function uploadDocument(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await fetch(`${BASE}/rag/upload`, {
+    method: 'POST',
+    body: formData,
+  })
+  if (!res.ok) throw new Error('上传文档失败')
+  return res.json()
+}
+
+export async function fetchRagStats() {
+  const res = await fetch(`${BASE}/rag/stats`)
+  if (!res.ok) throw new Error('获取知识库状态失败')
   return res.json()
 }

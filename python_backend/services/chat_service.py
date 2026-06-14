@@ -52,3 +52,36 @@ def get_messages(session_id: int, limit: int = 10) -> list[dict]:
     # 反转回时间升序
     rows.reverse()
     return [{"role": r["role"], "content": r["content"]} for r in rows]
+
+
+async def build_rag_messages(session_id: int, current_message: str, limit: int = 20) -> list[dict]:
+    """
+    构建带 RAG 文档上下文的 messages 数组
+    流程：MySQL历史 + ChromaDB检索 -> 拼系统提示 -> 返回完整 messages
+    """
+    from services.rag_service import query_documents
+
+    # 拿常规历史 + 当前问题的messages
+    messages = build_context(session_id, current_message, limit)
+
+    # 去ChromaDB 检索相关文档块
+    docs = await query_documents(current_message, n_results=5)
+
+    if docs:
+        # 拼接
+        doc_context = "\n\n---\n\n".join(
+            f"[来源： {d['file_name']}]\n{d['content']}"
+            for d in docs
+        )
+        # 在 messages 最前面插入系统提示
+        system_msg = {
+            "role": "system",
+            "content": (
+                "你是一个基于文档知识库的角色扮演者。"
+                "请根据以下参考文档回答用户。"
+                f"===参考文档===\n{doc_context}\n===文档结束==="
+            ),
+        }
+        messages.insert(0, system_msg)
+        
+    return messages

@@ -5,3 +5,5 @@ from typing import Optional
 class ChatRequest(BaseModel):
     message: str
     sessionId: Optional[int] = None
+    rag: bool = False
+    

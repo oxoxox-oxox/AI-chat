@@ -19,3 +19,7 @@ PORT = int(os.getenv("PORT", 3000))
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5")
 OLLAMA_CHAT_URL = f"{OLLAMA_HOST}/api/chat"
+
+# ---- RAG ----
+EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
+EMBED_URL = f"{OLLAMA_HOST}/api/embeddings"

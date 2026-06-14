@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse
 
 from config import PORT, OLLAMA_MODEL
 from db import init_db
-from routers import session_router, chat_router
+from routers import session_router, chat_router, rag_router
 
 app = FastAPI(title="Ollama AI Chat")
 
@@ -26,6 +26,7 @@ app.add_middleware(
 # ---- 注册路由 ----
 app.include_router(session_router)
 app.include_router(chat_router)
+app.include_router(rag_router)
 
 
 # ---- 根路由 ----

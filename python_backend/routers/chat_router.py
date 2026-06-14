@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 
 from config import OLLAMA_CHAT_URL, OLLAMA_MODEL
 from schemas.chat_schemas import ChatRequest
-from services.chat_service import build_context, save_message
+from services.chat_service import build_context, save_message, build_rag_messages
 from services.session_service import create_session
 
 router = APIRouter(prefix="/api/chat", tags=["聊天"])
@@ -34,7 +34,8 @@ async def chat(req: ChatRequest):
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 OLLAMA_CHAT_URL,
-                json={"model": OLLAMA_MODEL, "messages": messages, "stream": False},
+                json={"model": OLLAMA_MODEL,
+                      "messages": messages, "stream": False},
                 timeout=120.0,
             )
         data = response.json()
@@ -54,7 +55,10 @@ async def chat_stream(req: ChatRequest):
     sid = _ensure_session(req.sessionId, req.message)
 
     save_message(sid, "user", req.message)
-    messages = build_context(sid, req.message)
+    if req.rag:
+        messages = await build_rag_messages(sid, req.message)
+    else:
+        messages = build_context(sid, req.message)
 
     async def event_generator():
         full_reply = ""
@@ -63,7 +67,8 @@ async def chat_stream(req: ChatRequest):
                 async with client.stream(
                     "POST",
                     OLLAMA_CHAT_URL,
-                    json={"model": OLLAMA_MODEL, "messages": messages, "stream": True},
+                    json={"model": OLLAMA_MODEL,
+                          "messages": messages, "stream": True},
                     timeout=120.0,
                 ) as response:
                     async for line in response.aiter_lines():
@@ -71,7 +76,8 @@ async def chat_stream(req: ChatRequest):
                             continue
                         try:
                             chunk = json.loads(line)
-                            content = chunk.get("message", {}).get("content", "")
+                            content = chunk.get(
+                                "message", {}).get("content", "")
                             if content:
                                 full_reply += content
                                 yield f"data: {json.dumps({'content': content})}\n\n"
